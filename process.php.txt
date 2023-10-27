@@ -1,0 +1,45 @@
+<?php
+// 獲取表單提交的數據
+$phone = $_POST['phone'];
+$order = $_POST['order'];
+$amount = $_POST['amount'];
+
+// 檢查電話唯一性
+$spreadsheetId = '1zW2_q36nMP2PUL7ViVMWfC1AiqUQrJQ_gg_riYj-vA4'; // 將YOUR_SPREADSHEET_ID替換為您的 Google 表格 ID
+$tableRange = '2023nov!A2:A'; // 將Sheet1替換為您的工作表名稱
+$service = new Google_Service_Sheets($client); // 假設您已經建立了有效的 Google Sheets 服務 $client
+
+$response = $service->spreadsheets_values->get($spreadsheetId, $tableRange);
+$values = $response->getValues();
+
+$phoneExists = false;
+foreach ($values as $row) {
+    if ($row[0] == $phone) {
+        $phoneExists = true;
+        break;
+    }
+}
+
+if ($phoneExists) {
+    echo '<script>alert("電話已用過。");</script>';
+} else {
+    // 將日期時間設定為香港時區
+    date_default_timezone_set('Asia/Hong_Kong');
+    $datetime = date('Y-m-d H:i:s');
+
+    // 將數據寫入 Google 表格
+    $values = [
+        [$phone, $order, $amount, $datetime]
+    ];
+    $body = new Google_Service_Sheets_ValueRange([
+        'values' => $values
+    ]);
+    $params = [
+        'valueInputOption' => 'RAW'
+    ];
+    $service->spreadsheets_values->append($spreadsheetId, $tableRange, $body, $params);
+
+    // 顯示訊息視窗
+    echo '<script>alert("資料已成功提交。");</script>';
+}
+?>
